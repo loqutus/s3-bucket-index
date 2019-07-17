@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <body>
-
+{{range .Files}}
+    <a href=//{{$.Domain}}/{{.Name}}>{{.Name}} {{.Size}}</a>
+{{end}}
+</body>
 </html>

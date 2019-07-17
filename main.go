@@ -1,20 +1,20 @@
 package main
 
 import (
+	"bytes"
 	"errors"
-	"fmt"
-	"io"
-	//"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/dustin/go-humanize"
 	"html/template"
 	"os"
 )
 
 type File struct {
 	Name string
-	Size uint64
+	Size string
 }
 
 type Files struct {
@@ -37,7 +37,7 @@ func handler() (string, error) {
 	if err != nil {
 		return "Unable to list items in bucket", err
 	}
-	var w io.Writer
+	var tpl bytes.Buffer
 	d := Files{domainName, []File{}}
 	tmpl := template.New("index")
 	tmpl, err = template.ParseFiles("./index.html")
@@ -45,26 +45,18 @@ func handler() (string, error) {
 		return "template.ParseFiles error", err
 	}
 	for _, item := range resp.Contents {
-		f := File {string(*item.Key), uint64(*item.Size)}
+		var f File
 		f.Name = string(*item.Key)
-		f.Size = uint64(*item.Size)
+		f.Size = humanize.Bytes(uint64(*item.Size))
 		d.Files = append(d.Files, f)
 	}
-	fmt.Println(d)
-	err = tmpl.Execute(w, d)
+	err = tmpl.Execute(&tpl, d)
 	if err != nil{
 		return "template rendering error", err
 	}
-	fmt.Println(w)
-	return "Hello ƛ!", nil
+	return tpl.String(), nil
 }
 
 func main() {
-	//lambda.Start(handler)
-	out, err := handler()
-	if err != nil {
-		fmt.Println(out)
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	lambda.Start(handler)
 }
